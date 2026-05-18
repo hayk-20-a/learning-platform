@@ -1,0 +1,139 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// The role a user can have on the platform
+enum Role {
+  STUDENT
+  TEACHER
+  ADMIN
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         Role     @default(STUDENT)
+  avatarUrl    String?  @map("avatar_url")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  courses     Course[]     // courses this user teaches
+  enrollments Enrollment[]
+  reviews     Review[]
+  progress    Progress[]
+
+  @@map("users") // the actual table name in PostgreSQL
+}
+
+model Category {
+  id      String   @id @default(uuid())
+  name    String   @unique
+  slug    String   @unique
+  courses Course[]
+
+  @@map("categories")
+}
+
+model Course {
+  id           String   @id @default(uuid())
+  title        String
+  slug         String   @unique
+  description  String
+  thumbnailUrl String?  @map("thumbnail_url")
+  price        Decimal  @default(0)
+  isPublished  Boolean  @default(false) @map("is_published")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Foreign keys
+  teacherId  String @map("teacher_id")
+  categoryId String @map("category_id")
+
+  // Relations
+  teacher     User         @relation(fields: [teacherId], references: [id])
+  category    Category     @relation(fields: [categoryId], references: [id])
+  sections    Section[]
+  enrollments Enrollment[]
+  reviews     Review[]
+
+  @@map("courses")
+}
+
+model Section {
+  id         String   @id @default(uuid())
+  title      String
+  orderIndex Int      @map("order_index")
+  courseId   String   @map("course_id")
+  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons    Lesson[]
+
+  @@map("sections")
+}
+
+model Lesson {
+  id              String     @id @default(uuid())
+  title           String
+  videoUrl        String?    @map("video_url")
+  durationSeconds Int?       @map("duration_seconds")
+  orderIndex      Int        @map("order_index")
+  isFreePreview   Boolean    @default(false) @map("is_free_preview")
+  sectionId       String     @map("section_id")
+  section         Section    @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  progress        Progress[]
+
+  @@map("lessons")
+}
+
+model Enrollment {
+  id         String   @id @default(uuid())
+  enrolledAt DateTime @default(now()) @map("enrolled_at")
+  isPaid     Boolean  @default(false) @map("is_paid")
+  userId     String   @map("user_id")
+  courseId   String   @map("course_id")
+
+  user   User   @relation(fields: [userId], references: [id])
+  course Course @relation(fields: [courseId], references: [id])
+
+  // A user can only be enrolled in a course once
+  @@unique([userId, courseId])
+  @@map("enrollments")
+}
+
+model Progress {
+  id          String    @id @default(uuid())
+  isCompleted Boolean   @default(false) @map("is_completed")
+  completedAt DateTime? @map("completed_at")
+  userId      String    @map("user_id")
+  lessonId    String    @map("lesson_id")
+
+  user   User   @relation(fields: [userId], references: [id])
+  lesson Lesson @relation(fields: [lessonId], references: [id])
+
+  // A user can only have one progress record per lesson
+  @@unique([userId, lessonId])
+  @@map("progress")
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now()) @map("created_at")
+  userId    String   @map("user_id")
+  courseId  String   @map("course_id")
+
+  user   User   @relation(fields: [userId], references: [id])
+  course Course @relation(fields: [courseId], references: [id])
+
+  // A user can only review a course once
+  @@unique([userId, courseId])
+  @@map("reviews")
+}
