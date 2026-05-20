@@ -25,6 +25,34 @@ router.get("/id/:id", authenticate, async (req, res, next) => {
   }
 });
 
+// GET /api/courses/with-sections/:id
+router.get("/with-sections/:id", authenticate, async (req, res, next) => {
+  try {
+    const course = await prisma.course.findUnique({
+      where: { id: req.params.id },
+      include: {
+        sections: {
+          orderBy: { orderIndex: "asc" },
+          include: {
+            lessons: { orderBy: { orderIndex: "asc" } },
+          },
+        },
+      },
+    });
+    if (!course) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Course not found" });
+    }
+    if (course.teacherId !== req.user.userId) {
+      return res.status(403).json({ success: false, message: "Forbidden" });
+    }
+    res.json({ success: true, data: course });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // ── Public routes (no login required) ──────────────────────────
 router.get("/", courseController.getAllCourses);
 router.get("/:slug", courseController.getCourseBySlug);

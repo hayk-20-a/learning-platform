@@ -53,7 +53,6 @@ export default function TeacherDashboard() {
     }
   };
 
-  // Add this function after handleDelete
   const handleTogglePublish = async (course: Course) => {
     try {
       await courseService.update(course.id, {
@@ -202,6 +201,11 @@ export default function TeacherDashboard() {
                       <Link href={`/teacher/courses/${course.id}/edit`}>
                         <Button variant="secondary" size="sm">
                           Edit
+                        </Button>
+                      </Link>
+                      <Link href={`/teacher/courses/${course.id}/content`}>
+                        <Button variant="ghost" size="sm">
+                          Content
                         </Button>
                       </Link>
                       <Button

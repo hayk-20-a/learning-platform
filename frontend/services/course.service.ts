@@ -35,4 +35,9 @@ export const courseService = {
     const response = await api.delete(`/api/courses/${id}`);
     return response.data;
   },
+
+  getWithSections: async (id: string) => {
+    const response = await api.get(`/api/courses/with-sections/${id}`);
+    return response.data;
+  },
 };

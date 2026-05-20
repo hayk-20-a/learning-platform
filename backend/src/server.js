@@ -78,6 +78,7 @@ app.use("/api/auth", require("./routes/auth.routes"));
 app.use("/api/courses", require("./routes/course.routes"));
 app.use("/api/categories", require("./routes/category.routes"));
 app.use("/api/enrollments", require("./routes/enrollment.routes"));
+app.use("/api", require("./routes/section.routes"));
 
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });
