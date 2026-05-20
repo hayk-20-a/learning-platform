@@ -64,7 +64,7 @@ dotenv.config();
 
 const app = express();
 
-// ✅ Middleware FIRST — before any routes
+//  Middleware FIRST — before any routes
 app.use(express.json());
 app.use(
   cors({
@@ -73,9 +73,11 @@ app.use(
   }),
 );
 
-// ✅ Routes AFTER middleware
+// Routes AFTER middleware
 app.use("/api/auth", require("./routes/auth.routes"));
 app.use("/api/courses", require("./routes/course.routes"));
+app.use("/api/categories", require("./routes/category.routes"));
+app.use("/api/enrollments", require("./routes/enrollment.routes"));
 
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });
