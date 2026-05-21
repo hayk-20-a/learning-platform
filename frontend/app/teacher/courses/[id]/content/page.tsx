@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { courseService } from "@/services/course.service";
 import { sectionService, lessonService } from "@/services/section.service";
+import { uploadService } from "@/services/upload.service";
 import { useAuthStore } from "@/store/authStore";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
@@ -38,19 +39,20 @@ export default function CourseContentPage() {
 
   const [course, setCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
+  const [uploadingLessonId, setUploadingLessonId] = useState<string | null>(
+    null,
+  );
+  const [uploadProgress, setUploadProgress] = useState(0);
 
-  // Section form state
   const [newSectionTitle, setNewSectionTitle] = useState("");
   const [addingSection, setAddingSection] = useState(false);
 
-  // Lesson form state — tracks which section is open for adding
   const [addingLessonToSection, setAddingLessonToSection] = useState<
     string | null
   >(null);
   const [newLessonTitle, setNewLessonTitle] = useState("");
   const [newLessonFreePreview, setNewLessonFreePreview] = useState(false);
 
-  // Edit state
   const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
   const [editingSectionTitle, setEditingSectionTitle] = useState("");
   const [editingLessonId, setEditingLessonId] = useState<string | null>(null);
@@ -63,9 +65,6 @@ export default function CourseContentPage() {
     }
     const fetchCourse = async () => {
       try {
-        const result = await courseService.getById(id);
-        // getById doesn't include sections — use getBySlug won't work either
-        // so we fetch full course with sections via a dedicated call
         const full = await courseService.getWithSections(id);
         setCourse(full.data);
       } catch (err) {
@@ -76,8 +75,6 @@ export default function CourseContentPage() {
     };
     fetchCourse();
   }, [isAuthenticated, router, user?.role, id]);
-
-  // ── Section actions ──────────────────────────────────────────
 
   const handleAddSection = async () => {
     if (!newSectionTitle.trim()) return;
@@ -140,8 +137,6 @@ export default function CourseContentPage() {
       console.error(err);
     }
   };
-
-  // ── Lesson actions ───────────────────────────────────────────
 
   const handleAddLesson = async (sectionId: string) => {
     if (!newLessonTitle.trim()) return;
@@ -226,6 +221,46 @@ export default function CourseContentPage() {
     }
   };
 
+  const handleVideoUpload = async (
+    lessonId: string,
+    sectionId: string,
+    file: File,
+  ) => {
+    try {
+      setUploadingLessonId(lessonId);
+      setUploadProgress(0);
+      const result = await uploadService.uploadVideo(
+        lessonId,
+        file,
+        (percent) => setUploadProgress(percent),
+      );
+      setCourse((prev) =>
+        prev
+          ? {
+              ...prev,
+              sections: prev.sections.map((s) =>
+                s.id === sectionId
+                  ? {
+                      ...s,
+                      lessons: s.lessons.map((l) =>
+                        l.id === lessonId
+                          ? { ...l, videoUrl: result.data.videoUrl }
+                          : l,
+                      ),
+                    }
+                  : s,
+              ),
+            }
+          : prev,
+      );
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setUploadingLessonId(null);
+      setUploadProgress(0);
+    }
+  };
+
   if (loading) {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -241,7 +276,6 @@ export default function CourseContentPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Course content</h1>
@@ -252,7 +286,6 @@ export default function CourseContentPage() {
         </Link>
       </div>
 
-      {/* Sections */}
       <div className="space-y-4 mb-6">
         {course.sections.length === 0 && (
           <div
@@ -358,9 +391,20 @@ export default function CourseContentPage() {
                     <>
                       <div className="flex items-center gap-3">
                         <span className="text-gray-400 text-xs">▶</span>
-                        <span className="text-sm text-gray-800">
-                          {lesson.title}
-                        </span>
+                        <div>
+                          <span className="text-sm text-gray-800">
+                            {lesson.title}
+                          </span>
+                          {lesson.videoUrl ? (
+                            <span className="ml-2 text-xs text-primary-600 font-medium">
+                              ✓ Video uploaded
+                            </span>
+                          ) : (
+                            <span className="ml-2 text-xs text-gray-400">
+                              No video yet
+                            </span>
+                          )}
+                        </div>
                         {lesson.isFreePreview && (
                           <span
                             className="text-xs bg-primary-100 text-primary-700
@@ -370,7 +414,46 @@ export default function CourseContentPage() {
                           </span>
                         )}
                       </div>
+
                       <div className="flex items-center gap-2">
+                        {uploadingLessonId === lesson.id ? (
+                          <div className="flex items-center gap-2 text-xs text-gray-500">
+                            <div className="w-24 bg-gray-100 rounded-full h-1.5">
+                              <div
+                                className="bg-primary-500 h-1.5 rounded-full transition-all"
+                                style={{ width: `${uploadProgress}%` }}
+                              />
+                            </div>
+                            {uploadProgress}%
+                          </div>
+                        ) : (
+                          <label className="cursor-pointer">
+                            <input
+                              type="file"
+                              accept="video/*"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file)
+                                  handleVideoUpload(
+                                    lesson.id,
+                                    section.id,
+                                    file,
+                                  );
+                              }}
+                            />
+                            <span
+                              className="inline-flex items-center px-2 py-1
+                              text-xs font-medium text-gray-600 bg-gray-100
+                              rounded-lg hover:bg-gray-200 transition-colors
+                              cursor-pointer"
+                            >
+                              {lesson.videoUrl
+                                ? "↑ Replace video"
+                                : "↑ Upload video"}
+                            </span>
+                          </label>
+                        )}
                         <Button
                           size="sm"
                           variant="ghost"
@@ -396,7 +479,6 @@ export default function CourseContentPage() {
                 </div>
               ))}
 
-              {/* Add lesson form */}
               {addingLessonToSection === section.id ? (
                 <div className="px-5 py-3 bg-gray-50 flex items-center gap-3">
                   <Input
@@ -452,7 +534,6 @@ export default function CourseContentPage() {
         ))}
       </div>
 
-      {/* Add section form */}
       <div className="bg-white rounded-xl border border-gray-100 p-5">
         <h3 className="font-medium text-gray-900 mb-3">Add a new section</h3>
         <div className="flex items-center gap-3">
