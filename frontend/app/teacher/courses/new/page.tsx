@@ -51,7 +51,7 @@ export default function NewCoursePage() {
   const onSubmit = async (data: CourseForm) => {
     try {
       setError("");
-      await courseService.create(data);
+      await courseService.create(data as unknown as Record<string, unknown>);
       router.push("/teacher/dashboard");
     } catch (err: unknown) {
       const message =
