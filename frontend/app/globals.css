@@ -1,28 +1,45 @@
 @import "tailwindcss";
+@import "@fontsource/plus-jakarta-sans/400.css";
+@import "@fontsource/plus-jakarta-sans/500.css";
+@import "@fontsource/plus-jakarta-sans/600.css";
+@import "@fontsource/plus-jakarta-sans/700.css";
+@import "@fontsource/plus-jakarta-sans/800.css";
 
 @theme {
-  --color-primary-50: #f0fffe;
-  --color-primary-100: #ccfef3;
-  --color-primary-200: #99fce6;
+  --font-sans: "Plus Jakarta Sans", sans-serif;
+
+  --color-primary-50: #f0faf5;
+  --color-primary-100: #dcfce7;
+  --color-primary-200: #a7f3d0;
   --color-primary-300: #2fdd92;
   --color-primary-400: #2fdd92;
-  --color-primary-500: #34be82;
-  --color-primary-600: #34be82;
-  --color-primary-700: #2a9a6a;
-  --color-primary-800: #1d6b4a;
-  --color-primary-900: #0f3d2a;
+  --color-primary-500: #1a7f5a;
+  --color-primary-600: #1a7f5a;
+  --color-primary-700: #166347;
+  --color-primary-800: #0d3d2a;
+  --color-primary-900: #052e16;
 
-  --color-accent-50: #ffffe0;
-  --color-accent-100: #ffffb3;
-  --color-accent-200: #f2f013;
-  --color-accent-300: #f2f013;
-  --color-accent-400: #f2f013;
-  --color-accent-500: #d4d211;
-  --color-accent-600: #a8a60d;
-  --color-accent-700: #7a7a09;
-  --color-accent-800: #4d4d06;
-  --color-accent-900: #242402;
+  --color-accent-50: #fefce8;
+  --color-accent-100: #fef9c3;
+  --color-accent-200: #f0c93a;
+  --color-accent-300: #f0c93a;
+  --color-accent-400: #f0c93a;
+  --color-accent-500: #d4a017;
+  --color-accent-600: #b47d0d;
+  --color-accent-700: #92600a;
+  --color-accent-800: #6b4508;
+  --color-accent-900: #422905;
 
-  --color-teal-500: #2f86a6;
-  --color-teal-600: #2a7591;
+  --color-deep-900: #0d3d2a;
+  --color-deep-800: #164e35;
+  --color-deep-700: #166347;
+  --color-mist-50: #f0faf5;
+}
+
+* {
+  font-family: "Plus Jakarta Sans", sans-serif;
+}
+
+body {
+  background-color: #f8fafb;
 }
