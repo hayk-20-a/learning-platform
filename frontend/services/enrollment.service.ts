@@ -6,6 +6,11 @@ export const enrollmentService = {
     return response.data;
   },
 
+  getLearnCourse: async (courseId: string) => {
+    const response = await api.get(`/api/enrollments/learn/${courseId}`);
+    return response.data;
+  },
+
   getMyEnrollments: async () => {
     const response = await api.get("/api/enrollments/my");
     return response.data;

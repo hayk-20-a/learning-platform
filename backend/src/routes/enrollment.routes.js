@@ -3,6 +3,63 @@ const router = express.Router();
 const { authenticate } = require("../middleware/auth.middleware");
 const prisma = require("../utils/prisma");
 
+// GET /api/enrollments/learn/:courseId
+// Returns full course content only if student is enrolled
+router.get("/learn/:courseId", authenticate, async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const { courseId } = req.params;
+
+    // Verify enrollment
+    const enrollment = await prisma.enrollment.findUnique({
+      where: { userId_courseId: { userId, courseId } },
+    });
+
+    if (!enrollment) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not enrolled in this course",
+      });
+    }
+
+    // Return full course with video URLs
+    const course = await prisma.course.findUnique({
+      where: { id: courseId },
+      include: {
+        teacher: { select: { id: true, name: true } },
+        sections: {
+          orderBy: { orderIndex: "asc" },
+          include: {
+            lessons: {
+              orderBy: { orderIndex: "asc" },
+              // videoUrl is included here — student is enrolled
+            },
+          },
+        },
+      },
+    });
+
+    // Get student's progress for this course
+    const lessonIds = course.sections.flatMap((s) =>
+      s.lessons.map((l) => l.id),
+    );
+    const progress = await prisma.progress.findMany({
+      where: { userId, lessonId: { in: lessonIds } },
+    });
+
+    const completedLessonIds = progress
+      .filter((p) => p.isCompleted)
+      .map((p) => p.lessonId);
+
+    res.json({
+      success: true,
+      data: { course, completedLessonIds },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // GET /api/enrollments/my — get my enrolled courses
 router.get("/my", authenticate, async (req, res, next) => {
   try {

@@ -89,10 +89,7 @@ export default function StudentDashboard() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {enrollments.map((enrollment) => (
-            <Link
-              key={enrollment.id}
-              href={`/courses/${enrollment.course.slug}`}
-            >
+            <Link key={enrollment.id} href={`/learn/${enrollment.course.id}`}>
               <div
                 className="bg-white rounded-xl border border-gray-100
                 overflow-hidden hover:shadow-md hover:border-gray-200
@@ -137,7 +134,7 @@ export default function StudentDashboard() {
                       {enrollment.course._count.lessons} sections
                     </span>
                     <span className="text-xs font-medium text-primary-600">
-                      Continue →
+                      Continue learning →
                     </span>
                   </div>
                 </div>
