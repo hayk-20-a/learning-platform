@@ -15,22 +15,25 @@ enum Role {
 }
 
 model User {
-  id           String   @id @default(uuid())
-  name         String
-  email        String   @unique
-  passwordHash String   @map("password_hash")
-  role         Role     @default(STUDENT)
-  avatarUrl    String?  @map("avatar_url")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id                    String    @id @default(uuid())
+  name                  String
+  email                 String    @unique
+  passwordHash          String    @map("password_hash")
+  role                  Role      @default(STUDENT)
+  avatarUrl             String?   @map("avatar_url")
+  isEmailVerified       Boolean   @default(false) @map("is_email_verified")
+  emailVerifyToken      String?   @map("email_verify_token")
+  passwordResetToken    String?   @map("password_reset_token")
+  passwordResetExpires  DateTime? @map("password_reset_expires")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
 
-  // Relations
-  courses     Course[]     // courses this user teaches
+  courses     Course[]
   enrollments Enrollment[]
   reviews     Review[]
   progress    Progress[]
 
-  @@map("users") // the actual table name in PostgreSQL
+  @@map("users")
 }
 
 model Category {

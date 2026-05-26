@@ -9,6 +9,40 @@ router.post("/", authenticate, async (req, res, next) => {
     const { lessonId } = req.body;
     const userId = req.user.userId;
 
+    const lesson = await prisma.lesson.findUnique({
+      where: { id: lessonId },
+      include: {
+        section: {
+          include: {
+            course: { select: { id: true } },
+          },
+        },
+      },
+    });
+
+    if (!lesson) {
+      return res.status(404).json({
+        success: false,
+        message: "Lesson not found",
+      });
+    }
+
+    const enrollment = await prisma.enrollment.findUnique({
+      where: {
+        userId_courseId: {
+          userId,
+          courseId: lesson.section.course.id,
+        },
+      },
+    });
+
+    if (!enrollment) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not enrolled in this course",
+      });
+    }
+
     const progress = await prisma.progress.upsert({
       where: { userId_lessonId: { userId, lessonId } },
       update: {
@@ -51,6 +85,17 @@ router.get("/:courseId", authenticate, async (req, res, next) => {
       return res.status(404).json({
         success: false,
         message: "Course not found",
+      });
+    }
+
+    const enrollment = await prisma.enrollment.findUnique({
+      where: { userId_courseId: { userId, courseId } },
+    });
+
+    if (!enrollment) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not enrolled in this course",
       });
     }
 

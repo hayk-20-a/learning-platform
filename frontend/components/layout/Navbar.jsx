@@ -2,7 +2,6 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
-import Button from "@/components/ui/Button";
 
 export default function Navbar() {
   const router = useRouter();

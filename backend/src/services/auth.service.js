@@ -1,78 +1,195 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
 const prisma = require("../utils/prisma");
+const {
+  sendVerificationEmail,
+  sendPasswordResetEmail,
+} = require("../utils/email");
+
+const normalizeSignupRole = (role) => {
+  const normalized = role ? String(role).toUpperCase() : "STUDENT";
+  if (normalized === "STUDENT" || normalized === "TEACHER") {
+    return normalized;
+  }
+
+  const error = new Error("Invalid role selected");
+  error.status = 400;
+  throw error;
+};
 
 const register = async ({ name, email, password, role }) => {
-  // 1. Check if email is already taken
-  const existingUser = await prisma.user.findUnique({
-    where: { email },
-  });
+  const signupRole = normalizeSignupRole(role);
+  const existingUser = await prisma.user.findUnique({ where: { email } });
   if (existingUser) {
     const error = new Error("Email already in use");
-    error.status = 409; // 409 Conflict
+    error.status = 409;
     throw error;
   }
 
-  // 2. Hash the password
-  // The number 12 is the "salt rounds" — higher = more secure but slower
-  // 12 is the industry standard balance for production
   const passwordHash = await bcrypt.hash(password, 12);
 
-  // 3. Create the user in the database
+  // Generate email verification token
+  const emailVerifyToken = crypto.randomBytes(32).toString("hex");
+
   const user = await prisma.user.create({
     data: {
       name,
       email,
       passwordHash,
-      role: role?.toUpperCase() || "STUDENT",
+      role: signupRole,
+      emailVerifyToken,
+      isEmailVerified: false,
     },
-    // Never return the passwordHash to the client
     select: {
       id: true,
       name: true,
       email: true,
       role: true,
+      isEmailVerified: true,
       createdAt: true,
     },
   });
 
-  // 4. Generate a JWT token
-  const token = jwt.sign(
-    { userId: user.id, role: user.role }, // payload — data stored inside the token
-    process.env.JWT_SECRET, // secret key — only your server knows this
-    { expiresIn: "7d" }, // token expires in 7 days
-  );
+  // Send verification email
+  try {
+    await sendVerificationEmail({
+      to: email,
+      name,
+      token: emailVerifyToken,
+    });
+  } catch (emailError) {
+    console.error("Failed to send verification email:", emailError);
+    // Don't block registration if email fails
+  }
 
-  return { user, token };
-};
-
-const login = async ({ email, password }) => {
-  // 1. Find user by email
-  const user = await prisma.user.findUnique({
-    where: { email },
-  });
-
-  // Use the same vague error for both "user not found" and "wrong password"
-  // This prevents attackers from knowing which emails exist in your system
-  const invalidError = new Error("Invalid email or password");
-  invalidError.status = 401;
-
-  if (!user) throw invalidError;
-
-  // 2. Compare the provided password against the stored hash
-  const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
-  if (!isPasswordValid) throw invalidError;
-
-  // 3. Generate token
   const token = jwt.sign(
     { userId: user.id, role: user.role },
     process.env.JWT_SECRET,
     { expiresIn: "7d" },
   );
 
-  // 4. Return user (without password) and token
-  const { passwordHash, ...userWithoutPassword } = user;
-  return { user: userWithoutPassword, token };
+  return { user, token };
 };
 
-module.exports = { register, login };
+const login = async ({ email, password }) => {
+  const user = await prisma.user.findUnique({ where: { email } });
+
+  const invalidError = new Error("Invalid email or password");
+  invalidError.status = 401;
+
+  if (!user) throw invalidError;
+
+  const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+  if (!isPasswordValid) throw invalidError;
+
+  // Warn if email not verified but don't block login
+  const token = jwt.sign(
+    { userId: user.id, role: user.role },
+    process.env.JWT_SECRET,
+    { expiresIn: "7d" },
+  );
+
+  const {
+    passwordHash,
+    emailVerifyToken,
+    passwordResetToken,
+    passwordResetExpires,
+    ...userWithoutSensitive
+  } = user;
+
+  return {
+    user: userWithoutSensitive,
+    token,
+    emailVerified: user.isEmailVerified,
+  };
+};
+
+const verifyEmail = async (token) => {
+  const user = await prisma.user.findFirst({
+    where: { emailVerifyToken: token },
+  });
+
+  if (!user) {
+    const error = new Error("Invalid or expired verification link");
+    error.status = 400;
+    throw error;
+  }
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      isEmailVerified: true,
+      emailVerifyToken: null,
+    },
+  });
+
+  return { message: "Email verified successfully" };
+};
+
+const forgotPassword = async (email) => {
+  const user = await prisma.user.findUnique({ where: { email } });
+
+  // Always return success even if email doesn't exist
+  // This prevents attackers from knowing which emails are registered
+  if (!user) return { message: "If that email exists, a reset link was sent" };
+
+  const resetToken = crypto.randomBytes(32).toString("hex");
+  const resetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      passwordResetToken: resetToken,
+      passwordResetExpires: resetExpires,
+    },
+  });
+
+  try {
+    await sendPasswordResetEmail({
+      to: email,
+      name: user.name,
+      token: resetToken,
+    });
+  } catch (emailError) {
+    console.error("Failed to send reset email:", emailError);
+  }
+
+  return { message: "If that email exists, a reset link was sent" };
+};
+
+const resetPassword = async ({ token, password }) => {
+  const user = await prisma.user.findFirst({
+    where: {
+      passwordResetToken: token,
+      passwordResetExpires: { gt: new Date() },
+    },
+  });
+
+  if (!user) {
+    const error = new Error("Invalid or expired reset link");
+    error.status = 400;
+    throw error;
+  }
+
+  const passwordHash = await bcrypt.hash(password, 12);
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      passwordHash,
+      passwordResetToken: null,
+      passwordResetExpires: null,
+    },
+  });
+
+  return { message: "Password reset successfully" };
+};
+
+module.exports = {
+  register,
+  login,
+  verifyEmail,
+  forgotPassword,
+  resetPassword,
+};

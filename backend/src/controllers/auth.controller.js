@@ -1,8 +1,7 @@
 const authService = require("../services/auth.service");
 
-// Controllers are thin — they only handle HTTP concerns
-// (reading request body, sending response)
-// All logic lives in the service
+const getFrontendUrl = () =>
+  (process.env.FRONTEND_URL || "http://localhost:3000").replace(/\/$/, "");
 
 const register = async (req, res, next) => {
   try {
@@ -10,7 +9,7 @@ const register = async (req, res, next) => {
     const result = await authService.register({ name, email, password, role });
     res.status(201).json({ success: true, data: result });
   } catch (error) {
-    next(error); // passes error to the global error handler in server.js
+    next(error);
   }
 };
 
@@ -24,4 +23,41 @@ const login = async (req, res, next) => {
   }
 };
 
-module.exports = { register, login };
+const verifyEmail = async (req, res, next) => {
+  try {
+    const { token } = req.query;
+    await authService.verifyEmail(token);
+    // Redirect to frontend with success message
+    res.redirect(`${getFrontendUrl()}/verify-email/success`);
+  } catch (error) {
+    res.redirect(`${getFrontendUrl()}/verify-email/error`);
+  }
+};
+
+const forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    const result = await authService.forgotPassword(email);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const resetPassword = async (req, res, next) => {
+  try {
+    const { token, password } = req.body;
+    const result = await authService.resetPassword({ token, password });
+    res.json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = {
+  register,
+  login,
+  verifyEmail,
+  forgotPassword,
+  resetPassword,
+};

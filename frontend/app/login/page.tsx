@@ -84,6 +84,14 @@ export default function LoginPage() {
                 minLength: { value: 6, message: "Minimum 6 characters" },
               })}
             />
+            <div className="flex justify-end">
+              <Link
+                href="/forgot-password"
+                className="text-xs text-primary-600 hover:underline font-medium"
+              >
+                Forgot password?
+              </Link>
+            </div>
 
             <Button type="submit" isLoading={isSubmitting} className="mt-2">
               Log in

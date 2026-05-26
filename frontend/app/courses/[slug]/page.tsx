@@ -50,7 +50,7 @@ const formatDuration = (seconds: number) => {
 export default function CourseDetailPage() {
   const { slug } = useParams<{ slug: string }>();
   const router = useRouter();
-  const { user, isAuthenticated } = useAuthStore();
+  const { isAuthenticated } = useAuthStore();
   const [course, setCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState(false);

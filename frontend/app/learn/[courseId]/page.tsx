@@ -1,12 +1,9 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import dynamic from "next/dynamic";
 import { enrollmentService } from "@/services/enrollment.service";
 import { progressService } from "@/services/progress.service";
 import { useAuthStore } from "@/store/authStore";
-
-const ReactPlayer = dynamic(() => import("react-player"), { ssr: false });
 
 interface Lesson {
   id: string;
@@ -30,9 +27,6 @@ interface Course {
   teacher: { name: string };
   sections: Section[];
 }
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const Player = ReactPlayer as any;
 
 export default function LearnPage() {
   const { courseId } = useParams<{ courseId: string }>();

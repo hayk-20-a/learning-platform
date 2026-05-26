@@ -56,8 +56,8 @@ const getAllCourses = async ({ category, search, page = 1, limit = 12 }) => {
 };
 
 const getCourseBySlug = async (slug) => {
-  const course = await prisma.course.findUnique({
-    where: { slug },
+  const course = await prisma.course.findFirst({
+    where: { slug, isPublished: true },
     include: {
       teacher: { select: { id: true, name: true, avatarUrl: true } },
       category: true,
