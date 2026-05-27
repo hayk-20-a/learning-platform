@@ -2,12 +2,19 @@ const express = require("express");
 const router = express.Router();
 const { authenticate, authorize } = require("../middleware/auth.middleware");
 const prisma = require("../utils/prisma");
+const {
+  validateIdParam,
+  validateLessonBody,
+  validateSectionBody,
+} = require("../validators/request.validators");
 
 // POST /api/courses/:courseId/sections
 router.post(
   "/courses/:courseId/sections",
   authenticate,
   authorize("TEACHER", "ADMIN"),
+  validateIdParam("courseId"),
+  validateSectionBody,
   async (req, res, next) => {
     try {
       const { title } = req.body;
@@ -50,6 +57,8 @@ router.put(
   "/sections/:id",
   authenticate,
   authorize("TEACHER", "ADMIN"),
+  validateIdParam("id"),
+  validateSectionBody,
   async (req, res, next) => {
     try {
       const { title } = req.body;
@@ -85,6 +94,7 @@ router.delete(
   "/sections/:id",
   authenticate,
   authorize("TEACHER", "ADMIN"),
+  validateIdParam("id"),
   async (req, res, next) => {
     try {
       const section = await prisma.section.findUnique({
@@ -113,6 +123,8 @@ router.post(
   "/sections/:sectionId/lessons",
   authenticate,
   authorize("TEACHER", "ADMIN"),
+  validateIdParam("sectionId"),
+  validateLessonBody,
   async (req, res, next) => {
     try {
       const { title, isFreePreview } = req.body;
@@ -158,6 +170,8 @@ router.put(
   "/lessons/:id",
   authenticate,
   authorize("TEACHER", "ADMIN"),
+  validateIdParam("id"),
+  validateLessonBody,
   async (req, res, next) => {
     try {
       const { title, isFreePreview } = req.body;
@@ -192,6 +206,7 @@ router.delete(
   "/lessons/:id",
   authenticate,
   authorize("TEACHER", "ADMIN"),
+  validateIdParam("id"),
   async (req, res, next) => {
     try {
       const lesson = await prisma.lesson.findUnique({

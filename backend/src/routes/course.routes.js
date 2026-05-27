@@ -3,59 +3,76 @@ const prisma = require("../utils/prisma");
 const router = express.Router();
 const courseController = require("../controllers/course.controller");
 const { authenticate, authorize } = require("../middleware/auth.middleware");
+const {
+  validateCreateCourse,
+  validateIdParam,
+  validatePaginationQuery,
+  validateSlugParam,
+  validateUpdateCourse,
+} = require("../validators/request.validators");
 
 // GET /api/courses/id/:id — get course by ID (for teacher edit page)
-router.get("/id/:id", authenticate, async (req, res, next) => {
-  try {
-    const course = await prisma.course.findUnique({
-      where: { id: req.params.id },
-      include: { category: true },
-    });
-    if (!course) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Course not found" });
+router.get(
+  "/id/:id",
+  authenticate,
+  validateIdParam("id"),
+  async (req, res, next) => {
+    try {
+      const course = await prisma.course.findUnique({
+        where: { id: req.params.id },
+        include: { category: true },
+      });
+      if (!course) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Course not found" });
+      }
+      if (course.teacherId !== req.user.userId) {
+        return res.status(403).json({ success: false, message: "Forbidden" });
+      }
+      res.json({ success: true, data: course });
+    } catch (err) {
+      next(err);
     }
-    if (course.teacherId !== req.user.userId) {
-      return res.status(403).json({ success: false, message: "Forbidden" });
-    }
-    res.json({ success: true, data: course });
-  } catch (err) {
-    next(err);
-  }
-});
+  },
+);
 
 // GET /api/courses/with-sections/:id
-router.get("/with-sections/:id", authenticate, async (req, res, next) => {
-  try {
-    const course = await prisma.course.findUnique({
-      where: { id: req.params.id },
-      include: {
-        sections: {
-          orderBy: { orderIndex: "asc" },
-          include: {
-            lessons: { orderBy: { orderIndex: "asc" } },
+router.get(
+  "/with-sections/:id",
+  authenticate,
+  validateIdParam("id"),
+  async (req, res, next) => {
+    try {
+      const course = await prisma.course.findUnique({
+        where: { id: req.params.id },
+        include: {
+          sections: {
+            orderBy: { orderIndex: "asc" },
+            include: {
+              lessons: { orderBy: { orderIndex: "asc" } },
+            },
           },
         },
-      },
-    });
-    if (!course) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Course not found" });
+      });
+      if (!course) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Course not found" });
+      }
+      if (course.teacherId !== req.user.userId) {
+        return res.status(403).json({ success: false, message: "Forbidden" });
+      }
+      res.json({ success: true, data: course });
+    } catch (err) {
+      next(err);
     }
-    if (course.teacherId !== req.user.userId) {
-      return res.status(403).json({ success: false, message: "Forbidden" });
-    }
-    res.json({ success: true, data: course });
-  } catch (err) {
-    next(err);
-  }
-});
+  },
+);
 
 // ── Public routes (no login required) ──────────────────────────
-router.get("/", courseController.getAllCourses);
-router.get("/:slug", courseController.getCourseBySlug);
+router.get("/", validatePaginationQuery, courseController.getAllCourses);
+router.get("/:slug", validateSlugParam, courseController.getCourseBySlug);
 
 // ── Protected routes (must be logged in + correct role) ────────
 router.get(
@@ -69,6 +86,7 @@ router.post(
   "/",
   authenticate,
   authorize("TEACHER", "ADMIN"),
+  validateCreateCourse,
   courseController.createCourse,
 );
 
@@ -76,6 +94,8 @@ router.put(
   "/:id",
   authenticate,
   authorize("TEACHER", "ADMIN"),
+  validateIdParam("id"),
+  validateUpdateCourse,
   courseController.updateCourse,
 );
 
@@ -83,6 +103,7 @@ router.delete(
   "/:id",
   authenticate,
   authorize("TEACHER", "ADMIN"),
+  validateIdParam("id"),
   courseController.deleteCourse,
 );
 

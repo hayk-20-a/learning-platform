@@ -2,10 +2,18 @@ const express = require("express");
 const router = express.Router();
 const { authenticate } = require("../middleware/auth.middleware");
 const prisma = require("../utils/prisma");
+const {
+  validateCourseIdBody,
+  validateIdParam,
+} = require("../validators/request.validators");
 
 // GET /api/enrollments/learn/:courseId
 // Returns full course content only if student is enrolled
-router.get("/learn/:courseId", authenticate, async (req, res, next) => {
+router.get(
+  "/learn/:courseId",
+  authenticate,
+  validateIdParam("courseId"),
+  async (req, res, next) => {
   try {
     const userId = req.user.userId;
     const { courseId } = req.params;
@@ -58,7 +66,8 @@ router.get("/learn/:courseId", authenticate, async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-});
+  },
+);
 
 // GET /api/enrollments/my — get my enrolled courses
 router.get("/my", authenticate, async (req, res, next) => {
@@ -83,7 +92,7 @@ router.get("/my", authenticate, async (req, res, next) => {
 });
 
 // POST /api/enrollments — enroll in a course
-router.post("/", authenticate, async (req, res, next) => {
+router.post("/", authenticate, validateCourseIdBody, async (req, res, next) => {
   try {
     const { courseId } = req.body;
     const userId = req.user.userId;

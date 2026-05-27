@@ -3,6 +3,7 @@ const router = express.Router();
 const { authenticate, authorize } = require("../middleware/auth.middleware");
 const { uploadVideo, uploadImage } = require("../utils/cloudinary");
 const prisma = require("../utils/prisma");
+const { validateIdParam } = require("../validators/request.validators");
 
 // POST /api/upload/video/:lessonId
 // Teacher uploads a video to a specific lesson
@@ -10,6 +11,7 @@ router.post(
   "/video/:lessonId",
   authenticate,
   authorize("TEACHER", "ADMIN"),
+  validateIdParam("lessonId"),
   uploadVideo.single("video"), // 'video' is the form field name
   async (req, res, next) => {
     try {
@@ -63,6 +65,7 @@ router.post(
   "/thumbnail/:courseId",
   authenticate,
   authorize("TEACHER", "ADMIN"),
+  validateIdParam("courseId"),
   uploadImage.single("thumbnail"),
   async (req, res, next) => {
     try {

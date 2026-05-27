@@ -28,11 +28,39 @@ app.get("/health", (req, res) => {
   res.json({ status: "ok" });
 });
 
+const getErrorResponse = (err) => {
+  if (err.type === "entity.parse.failed") {
+    return { status: 400, message: "Invalid JSON body" };
+  }
+
+  if (err.code === "P2002") {
+    return { status: 409, message: "A record with this value already exists" };
+  }
+
+  if (err.code === "P2003") {
+    return { status: 400, message: "Related record does not exist" };
+  }
+
+  if (err.code === "P2025") {
+    return { status: 404, message: "Record not found" };
+  }
+
+  const status = err.status || 500;
+  return {
+    status,
+    message:
+      status >= 500 ? "Internal server error" : err.message || "Request failed",
+  };
+};
+
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(err.status || 500).json({
+  const { status, message } = getErrorResponse(err);
+
+  console.error(err.stack || err);
+  res.status(status).json({
     success: false,
-    message: err.message || "Internal server error",
+    message,
+    ...(err.errors && { errors: err.errors }),
   });
 });
 

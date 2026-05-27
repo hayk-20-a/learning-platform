@@ -2,9 +2,13 @@ const express = require("express");
 const router = express.Router();
 const { authenticate } = require("../middleware/auth.middleware");
 const prisma = require("../utils/prisma");
+const {
+  validateIdParam,
+  validateLessonIdBody,
+} = require("../validators/request.validators");
 
 // POST /api/progress — mark a lesson complete
-router.post("/", authenticate, async (req, res, next) => {
+router.post("/", authenticate, validateLessonIdBody, async (req, res, next) => {
   try {
     const { lessonId } = req.body;
     const userId = req.user.userId;
@@ -64,7 +68,11 @@ router.post("/", authenticate, async (req, res, next) => {
 });
 
 // GET /api/progress/:courseId — get progress for a course
-router.get("/:courseId", authenticate, async (req, res, next) => {
+router.get(
+  "/:courseId",
+  authenticate,
+  validateIdParam("courseId"),
+  async (req, res, next) => {
   try {
     const userId = req.user.userId;
     const { courseId } = req.params;
@@ -130,6 +138,7 @@ router.get("/:courseId", authenticate, async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-});
+  },
+);
 
 module.exports = router;

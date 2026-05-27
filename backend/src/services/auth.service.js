@@ -106,6 +106,12 @@ const login = async ({ email, password }) => {
 };
 
 const verifyEmail = async (token) => {
+  if (!token) {
+    const error = new Error("Invalid or expired verification link");
+    error.status = 400;
+    throw error;
+  }
+
   const user = await prisma.user.findFirst({
     where: { emailVerifyToken: token },
   });
@@ -159,6 +165,12 @@ const forgotPassword = async (email) => {
 };
 
 const resetPassword = async ({ token, password }) => {
+  if (!token) {
+    const error = new Error("Invalid or expired reset link");
+    error.status = 400;
+    throw error;
+  }
+
   const user = await prisma.user.findFirst({
     where: {
       passwordResetToken: token,

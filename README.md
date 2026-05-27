@@ -107,6 +107,15 @@ npx prisma migrate resolve --applied 20260526190000_init
 
 Only do that baseline step if the existing Neon schema already matches `backend/prisma/schema.prisma`. For a brand-new empty Neon database, skip the baseline step and let `npm run prisma:deploy` create the tables.
 
+If you already tried `npm run prisma:deploy` and it failed with `type "Role" already exists`, Prisma has recorded the migration as failed. Recover by marking the same migration as applied, then run deploy again:
+
+```bash
+cd backend
+npx prisma migrate resolve --applied 20260526190000_init
+npm run prisma:deploy
+npm run prisma:generate
+```
+
 Run seed manually after first production setup if categories are missing:
 
 ```bash
