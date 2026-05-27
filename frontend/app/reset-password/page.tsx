@@ -2,6 +2,7 @@
 import { useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { authService } from "@/services/auth.service";
+import { getApiErrorMessage } from "@/utils/apiError";
 
 function ResetForm() {
   const searchParams = useSearchParams();
@@ -28,8 +29,13 @@ function ResetForm() {
       setError("");
       await authService.resetPassword({ token, password });
       router.push("/login?reset=success");
-    } catch {
-      setError("This reset link has expired. Please request a new one.");
+    } catch (err) {
+      setError(
+        getApiErrorMessage(
+          err,
+          "This reset link has expired. Please request a new one.",
+        ),
+      );
     } finally {
       setLoading(false);
     }

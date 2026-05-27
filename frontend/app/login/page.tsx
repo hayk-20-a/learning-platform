@@ -7,6 +7,7 @@ import { authService } from "@/services/auth.service";
 import { useAuthStore } from "@/store/authStore";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
+import { applyApiFieldErrors, getApiErrorMessage } from "@/utils/apiError";
 
 interface LoginForm {
   email: string;
@@ -16,17 +17,18 @@ interface LoginForm {
 export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuthStore();
-  const [error, setError] = useState("");
+  const [serverError, setServerError] = useState("");
 
   const {
     register,
     handleSubmit,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<LoginForm>();
 
   const onSubmit = async (data: LoginForm) => {
     try {
-      setError("");
+      setServerError("");
       const result = await authService.login(data);
       login(result.data.user, result.data.token);
 
@@ -36,9 +38,12 @@ export default function LoginPage() {
         router.push("/dashboard");
       }
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Invalid email or password";
-      setError(message);
+      const fieldErrors = applyApiFieldErrors(err, setError);
+      setServerError(
+        Object.keys(fieldErrors).length
+          ? ""
+          : getApiErrorMessage(err, "Invalid email or password"),
+      );
     }
   };
 
@@ -51,9 +56,9 @@ export default function LoginPage() {
             <p className="text-gray-500 text-sm mt-1">Log in to your account</p>
           </div>
 
-          {error && (
+          {serverError && (
             <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-lg">
-              <p className="text-sm text-red-600">{error}</p>
+              <p className="text-sm text-red-600">{serverError}</p>
             </div>
           )}
 
@@ -93,7 +98,12 @@ export default function LoginPage() {
               </Link>
             </div>
 
-            <Button type="submit" isLoading={isSubmitting} className="mt-2">
+            <Button
+              type="submit"
+              isLoading={isSubmitting}
+              loadingLabel="Logging in..."
+              className="mt-2"
+            >
               Log in
             </Button>
           </form>

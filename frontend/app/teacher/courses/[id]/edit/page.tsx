@@ -7,6 +7,7 @@ import { categoryService } from "@/services/category.service";
 import { useAuthStore } from "@/store/authStore";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
+import { applyApiFieldErrors, getApiErrorMessage } from "@/utils/apiError";
 
 interface Category {
   id: string;
@@ -27,13 +28,14 @@ export default function EditCoursePage() {
   const router = useRouter();
   const { isAuthenticated, user } = useAuthStore();
   const [categories, setCategories] = useState<Category[]>([]);
-  const [error, setError] = useState("");
+  const [serverError, setServerError] = useState("");
   const [loading, setLoading] = useState(true);
 
   const {
     register,
     handleSubmit,
     reset,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<CourseForm>();
 
@@ -68,16 +70,19 @@ export default function EditCoursePage() {
 
   const onSubmit = async (data: CourseForm) => {
     try {
-      setError("");
+      setServerError("");
       await courseService.update(
         id,
         data as unknown as Record<string, unknown>,
       );
       router.push("/teacher/dashboard");
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Something went wrong";
-      setError(message);
+      const fieldErrors = applyApiFieldErrors(err, setError);
+      setServerError(
+        Object.keys(fieldErrors).length
+          ? ""
+          : getApiErrorMessage(err, "Could not update course"),
+      );
     }
   };
 
@@ -100,9 +105,9 @@ export default function EditCoursePage() {
       </div>
 
       <div className="bg-white rounded-xl border border-gray-100 p-6">
-        {error && (
+        {serverError && (
           <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-lg">
-            <p className="text-sm text-red-600">{error}</p>
+            <p className="text-sm text-red-600">{serverError}</p>
           </div>
         )}
 
@@ -149,6 +154,11 @@ export default function EditCoursePage() {
                 </option>
               ))}
             </select>
+            {errors.categoryId && (
+              <p className="text-xs text-red-500">
+                {errors.categoryId.message}
+              </p>
+            )}
           </div>
 
           <Input
@@ -168,12 +178,16 @@ export default function EditCoursePage() {
               {...register("isPublished")}
             />
             <label htmlFor="isPublished" className="text-sm text-gray-700">
-              Published — visible to students
+              Published - visible to students
             </label>
           </div>
 
           <div className="flex items-center gap-3 pt-2">
-            <Button type="submit" isLoading={isSubmitting}>
+            <Button
+              type="submit"
+              isLoading={isSubmitting}
+              loadingLabel="Saving..."
+            >
               Save changes
             </Button>
             <Button type="button" variant="ghost" onClick={() => router.back()}>

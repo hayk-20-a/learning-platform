@@ -7,21 +7,23 @@ import { authService } from "@/services/auth.service";
 import { useAuthStore } from "@/store/authStore";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
+import { applyApiFieldErrors, getApiErrorMessage } from "@/utils/apiError";
 
 export default function RegisterPage() {
   const router = useRouter();
   const { login } = useAuthStore();
-  const [error, setError] = useState("");
+  const [serverError, setServerError] = useState("");
 
   const {
     register,
     handleSubmit,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm();
 
   const onSubmit = async (data) => {
     try {
-      setError("");
+      setServerError("");
       const result = await authService.register(data);
       login(result.data.user, result.data.token);
       router.push(
@@ -30,7 +32,10 @@ export default function RegisterPage() {
           : "/dashboard",
       );
     } catch (err) {
-      setError(err.response?.data?.message || "Something went wrong");
+      const fieldErrors = applyApiFieldErrors(err, setError);
+      setServerError(
+        Object.keys(fieldErrors).length ? "" : getApiErrorMessage(err),
+      );
     }
   };
 
@@ -45,9 +50,9 @@ export default function RegisterPage() {
             <p className="text-gray-500 text-sm mt-1">Start learning today</p>
           </div>
 
-          {error && (
+          {serverError && (
             <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-lg">
-              <p className="text-sm text-red-600">{error}</p>
+              <p className="text-sm text-red-600">{serverError}</p>
             </div>
           )}
 
@@ -96,12 +101,17 @@ export default function RegisterPage() {
                 {...register("role")}
                 defaultValue="student"
               >
-                <option value="student">Learn — Im a student</option>
-                <option value="teacher">Teach — Im an instructor</option>
+                <option value="student">Learn - I&apos;m a student</option>
+                <option value="teacher">Teach - I&apos;m an instructor</option>
               </select>
             </div>
 
-            <Button type="submit" isLoading={isSubmitting} className="mt-2">
+            <Button
+              type="submit"
+              isLoading={isSubmitting}
+              loadingLabel="Creating..."
+              className="mt-2"
+            >
               Create account
             </Button>
           </form>

@@ -6,6 +6,7 @@ import { courseService } from "@/services/course.service";
 import { enrollmentService } from "@/services/enrollment.service";
 import { useAuthStore } from "@/store/authStore";
 import Button from "@/components/ui/Button";
+import { getApiErrorMessage } from "@/utils/apiError";
 
 interface Lesson {
   id: string;
@@ -101,8 +102,7 @@ export default function CourseDetailPage() {
         setEnrolled(true);
         return;
       }
-      const message = err instanceof Error ? err.message : "Could not enroll";
-      setError(message);
+      setError(getApiErrorMessage(err, "Could not enroll"));
     } finally {
       setEnrolling(false);
     }
@@ -293,6 +293,7 @@ export default function CourseDetailPage() {
                 <Button
                   className="w-full"
                   isLoading={enrolling}
+                  loadingLabel="Enrolling..."
                   onClick={handleEnroll}
                 >
                   {Number(course.price) === 0

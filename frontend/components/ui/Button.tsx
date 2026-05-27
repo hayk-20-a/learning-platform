@@ -21,6 +21,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: keyof typeof variants;
   size?: keyof typeof sizes;
   isLoading?: boolean;
+  loadingLabel?: string;
   className?: string;
 }
 
@@ -30,6 +31,7 @@ export default function Button({
   size = "md",
   className,
   isLoading,
+  loadingLabel = "Loading...",
   disabled,
   ...props
 }: ButtonProps) {
@@ -64,7 +66,7 @@ export default function Button({
               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
             />
           </svg>
-          Loading...
+          {loadingLabel}
         </span>
       ) : (
         children
