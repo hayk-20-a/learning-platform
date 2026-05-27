@@ -2,6 +2,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const prisma = require("../utils/prisma");
+const { getJwtSecret } = require("../utils/env");
 const {
   sendVerificationEmail,
   sendPasswordResetEmail,
@@ -19,6 +20,7 @@ const normalizeSignupRole = (role) => {
 };
 
 const register = async ({ name, email, password, role }) => {
+  const jwtSecret = getJwtSecret();
   const signupRole = normalizeSignupRole(role);
   const existingUser = await prisma.user.findUnique({ where: { email } });
   if (existingUser) {
@@ -65,7 +67,7 @@ const register = async ({ name, email, password, role }) => {
 
   const token = jwt.sign(
     { userId: user.id, role: user.role },
-    process.env.JWT_SECRET,
+    jwtSecret,
     { expiresIn: "7d" },
   );
 
@@ -73,6 +75,7 @@ const register = async ({ name, email, password, role }) => {
 };
 
 const login = async ({ email, password }) => {
+  const jwtSecret = getJwtSecret();
   const user = await prisma.user.findUnique({ where: { email } });
 
   const invalidError = new Error("Invalid email or password");
@@ -86,7 +89,7 @@ const login = async ({ email, password }) => {
   // Warn if email not verified but don't block login
   const token = jwt.sign(
     { userId: user.id, role: user.role },
-    process.env.JWT_SECRET,
+    jwtSecret,
     { expiresIn: "7d" },
   );
 
